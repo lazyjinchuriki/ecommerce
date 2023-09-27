@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inclusive+Sans&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inclusive Sans', sans-serif;
+    background-color: #f5f5f5;
+}
+button {
+    font-family: 'Inclusive Sans', sans-serif;
+}
+input {
+    font-family: 'Inclusive Sans', sans-serif;
+}
+
+
+/* scrollbar customisation */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background-color: rgba(46, 46, 46, 0.1);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #202020;
+    border-radius: 10px;
+}
