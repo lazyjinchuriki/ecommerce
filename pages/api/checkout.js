@@ -1,16 +1,25 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Product } from "@/models/Product";
 import { Order } from "@/models/Order";
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { Setting } from "@/models/Setting";
+const stripe = require("stripe")(process.env.STRIPE_SK);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.json("should be a POST request");
     return;
   }
-  const { name, email, city, postalCode, address, country, cartProducts } =
-    req.body;
-
+  const {
+    name,
+    email,
+    city,
+    postalCode,
+    streetAddress,
+    country,
+    cartProducts,
+  } = req.body;
   await mongooseConnect();
   const productsIds = cartProducts;
   const uniqueIds = [...new Set(productsIds)];
@@ -34,27 +43,43 @@ export default async function handler(req, res) {
     }
   }
 
+  const session = await getServerSession(req, res, authOptions);
+
   const orderDoc = await Order.create({
     line_items,
     name,
     email,
     city,
     postalCode,
-    address,
+    streetAddress,
     country,
     paid: false,
+    userEmail: session?.user?.email,
   });
 
-  const session = await stripe.checkout.sessions.create({
+  const shippingFeeSetting = await Setting.findOne({ name: "shippingFee" });
+  const shippingFeeRupees = parseInt(shippingFeeSetting.value || "0") * 100;
+
+  const stripeSession = await stripe.checkout.sessions.create({
     line_items,
     mode: "payment",
     customer_email: email,
-    success_url: process.env.NEXT_PUBLIC_DOMAIN + "/cart?success=1",
-    cancel_url: process.env.NEXT_PUBLIC_DOMAIN + "/cart?canceled=1",
+    success_url: process.env.NEXT_PUBLIC_URL + "/cart?success=1",
+    cancel_url: process.env.NEXT_PUBLIC_URL + "/cart?canceled=1",
     metadata: { orderId: orderDoc._id.toString() },
+    allow_promotion_codes: true,
+    shipping_options: [
+      {
+        shipping_rate_data: {
+          display_name: "shipping fee",
+          type: "fixed_amount",
+          fixed_amount: { amount: shippingFeeRupees, currency: "inr" },
+        },
+      },
+    ],
   });
 
   res.json({
-    url: session.url,
+    url: stripeSession.url,
   });
 }

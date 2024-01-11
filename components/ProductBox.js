@@ -1,71 +1,140 @@
 import styled from "styled-components";
-import Button from "./Button";
-import { useContext } from "react";
-import { CartContext } from "./CartContext";
+import Button, { ButtonStyle } from "@/components/Button";
+import CartIcon from "@/components/icons/CartIcon";
+import Link from "next/link";
+import { useContext, useEffect, useState } from "react";
+import { CartContext } from "@/components/CartContext";
+import { primary } from "@/lib/colors";
+import FlyingButton from "@/components/FlyingButton";
+import HeartOutlineIcon from "@/components/icons/HeartOutlineIcon";
+import HeartSolidIcon from "@/components/icons/HeartSolidIcon";
+import axios from "axios";
 
-const Box = styled.div`
-  background-color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 1rem;
-  padding: 1rem;
-  border-radius: 1rem;
-  box-shadow: 0 0 0.5rem rgba(131, 129, 140, 0.2);
-  transition: all 0.2s ease-in-out;
-  cursor: pointer;
-
-  &:hover {
-    box-shadow: 0 0 0.5rem rgba(131, 129, 140, 0.5);
-    transform: scale(1.02);
-  }
-
-  h3 {
-    font-size: 1rem;
-    margin: 20px 0 0 0;
-    padding: 0;
-  }
-
-  img {
-    max-width: 100%;
-    max-height: 150px;
-    object-fit: cover;
-  }
-  b {
-    font-size: 1.5rem;
-    font-family: "Poppins", sans-serif;
-    padding: 10px;
-    font-weight: 600;
-  }
-  div {
-    display: grid;
-    grid-template-columns: 0.2fr 1.8fr;
+const ProductWrapper = styled.div`
+  button {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
   }
 `;
 
-const ProductBox = ({ ...product }) => {
-  const { addToCart } = useContext(CartContext);
-  return (
-    <>
-      <Box>
-        <img src={product?.images[0]} alt={product.name} />
-        <h3>{product.name}</h3>
-        <b>₹{product.price}</b>
-        <div>
-          <Button lg={1}>❤️</Button>
-          <Button
-            black={1}
-            onClick={() => {
-              addToCart(product._id);
-            }}
-          >
-            Add to Cart
-          </Button>
-        </div>
-      </Box>
-    </>
-  );
-};
+const WhiteBox = styled(Link)`
+  background-color: #fff;
+  padding: 20px;
+  height: 120px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  position: relative;
+  img {
+    max-width: 100%;
+    max-height: 80px;
+  }
+`;
 
-export default ProductBox;
+const Title = styled(Link)`
+  font-weight: normal;
+  font-size: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+  margin: 0;
+`;
+
+const ProductInfoBox = styled.div`
+  margin-top: 5px;
+`;
+
+const PriceRow = styled.div`
+  display: block;
+  @media screen and (min-width: 768px) {
+    display: flex;
+    gap: 5px;
+  }
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+`;
+
+const Price = styled.div`
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: right;
+  @media screen and (min-width: 768px) {
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-align: left;
+  }
+`;
+
+const WishlistButton = styled.button`
+  border: 0;
+  width: 40px !important;
+  height: 40px;
+  padding: 10px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: transparent;
+  cursor: pointer;
+  ${(props) =>
+    props.wished
+      ? `
+    color:red;
+  `
+      : `
+    color:black;
+  `}
+  svg {
+    width: 16px;
+  }
+`;
+
+export default function ProductBox({
+  _id,
+  name,
+  description,
+  price,
+  images,
+  wished = false,
+  onRemoveFromWishlist = () => {},
+}) {
+  const url = "/product/" + _id;
+  const [isWished, setIsWished] = useState(wished);
+  function addToWishlist(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const nextValue = !isWished;
+    if (nextValue === false && onRemoveFromWishlist) {
+      onRemoveFromWishlist(_id);
+    }
+    axios
+      .post("/api/wishlist", {
+        product: _id,
+      })
+      .then(() => {});
+    setIsWished(nextValue);
+  }
+  return (
+    <ProductWrapper>
+      <WhiteBox href={url}>
+        <div>
+          <WishlistButton wished={isWished} onClick={addToWishlist}>
+            {isWished ? <HeartSolidIcon /> : <HeartOutlineIcon />}
+          </WishlistButton>
+          <img src={images?.[0]} alt="" />
+        </div>
+      </WhiteBox>
+      <ProductInfoBox>
+        <Title href={url}>{name}</Title>
+        <PriceRow>
+          <Price>${price}</Price>
+          <FlyingButton _id={_id} src={images?.[0]}>
+            Add to cart
+          </FlyingButton>
+        </PriceRow>
+      </ProductInfoBox>
+    </ProductWrapper>
+  );
+}
